@@ -223,6 +223,7 @@ def carregar_dados_jusgestante():
     SELECT 
         Name,
         Status,
+        TIPO,
         DATE_FORMAT(LastSendAt, '%d/%m/%Y %H:%i') as LastSendAt,
         TIME_FORMAT(StartOperationAt, '%H:%i') as StartOperationAt
     FROM DISTRIBUIDORES.DISTRIBUIDOR_G7_SDR_HUGGY
@@ -239,6 +240,15 @@ def atualizar_status(nome, novo_status):
     if sucesso:
         carregar_dados_jusgestante.clear()
     
+    return sucesso, mensagem
+
+# Função para atualizar o tipo do vendedor
+def atualizar_tipo(nome, novo_tipo):
+    """Atualiza o tipo de um registro na tabela DISTRIBUIDORES.DISTRIBUIDOR_G7_SDR_HUGGY pelo nome"""
+    query = "UPDATE DISTRIBUIDORES.DISTRIBUIDOR_G7_SDR_HUGGY SET TIPO = %s WHERE Name = %s"
+    sucesso, mensagem = executar_query(query, (novo_tipo, nome))
+    if sucesso:
+        carregar_dados_jusgestante.clear()
     return sucesso, mensagem
 
 # Conectar ao banco de dados com cache
@@ -346,8 +356,9 @@ with col1:
 
     # Se um agente foi selecionado, mostra opções de status e botão atualizar
     if selected_name:
-        # Obter o status atual do agente selecionado
+        # Obter o status e tipo atual do agente selecionado
         status_atual = df[df['Name'] == selected_name]['Status'].iloc[0].upper() if not df[df['Name'] == selected_name].empty else "INDISPONÍVEL"
+        tipo_atual = df[df['Name'] == selected_name]['TIPO'].iloc[0] if not df[df['Name'] == selected_name].empty else "SDR-VENDAS"
         
         # STATUS
         st.markdown('<div class="section-header" style="margin-top: 15px;">STATUS</div>', unsafe_allow_html=True)
@@ -389,16 +400,27 @@ with col1:
         </div>
         """, unsafe_allow_html=True)
         
+        # Seletor de tipo
+        st.markdown('<div class="section-header" style="margin-top: 15px;">TIPO</div>', unsafe_allow_html=True)
+        tipos_possiveis = ["SDR-VENDAS", "PROCESSO"]
+        if 'tipo_selecionado' not in st.session_state:
+            st.session_state.tipo_selecionado = tipo_atual
+        elif st.session_state.nome_anterior != selected_name:
+            st.session_state.tipo_selecionado = tipo_atual
+        tipo_novo = st.selectbox("", tipos_possiveis, index=tipos_possiveis.index(st.session_state.tipo_selecionado) if st.session_state.tipo_selecionado in tipos_possiveis else 0, key="tipo_select")
+        st.session_state.tipo_selecionado = tipo_novo
+
         # Botão Atualizar
         if st.button("Atualizar", key="atualizar_btn", use_container_width=True):
-            with st.spinner(f"Atualizando status de {selected_name} para {st.session_state.status_selecionado}..."):
-                sucesso, mensagem = atualizar_status(selected_name, st.session_state.status_selecionado)
-                if sucesso:
-                    st.success(f"Status de {selected_name} atualizado para {st.session_state.status_selecionado} com sucesso!")
+            with st.spinner(f"Atualizando status/tipo de {selected_name}..."):
+                sucesso_status, mensagem_status = atualizar_status(selected_name, st.session_state.status_selecionado)
+                sucesso_tipo, mensagem_tipo = atualizar_tipo(selected_name, st.session_state.tipo_selecionado)
+                if sucesso_status and sucesso_tipo:
+                    st.success(f"Status e tipo de {selected_name} atualizados com sucesso!")
                     st.session_state.atualizar_dados = True
                     st.rerun()
                 else:
-                    st.error(f"Erro ao atualizar status: {mensagem}")
+                    st.error(f"Erro ao atualizar: {mensagem_status if not sucesso_status else ''} {mensagem_tipo if not sucesso_tipo else ''}")
     
     st.markdown('</div>', unsafe_allow_html=True)
     
@@ -501,7 +523,7 @@ with col2:
         df_display['Status_HTML'] = df_display['Status'].apply(formatar_status_html)
         
         # Substituir a coluna Status original pela versão formatada em HTML
-        colunas_exibir = [col for col in df_display.columns if col in ['Name', 'Status', 'LastSendAt', 'StartOperationAt']]
+        colunas_exibir = [col for col in df_display.columns if col in ['Name', 'Status', 'TIPO', 'LastSendAt', 'StartOperationAt']]
         if 'Status_HTML' not in colunas_exibir:
             colunas_exibir.append('Status_HTML')
         
@@ -509,6 +531,7 @@ with col2:
         rename_cols = {
             'Name': 'NOME',
             'Status_HTML': 'STATUS',
+            'TIPO': 'TIPO',
             'LastSendAt': 'ÚLTIMO ENVIO',
             'StartOperationAt': 'INÍCIO OPERAÇÃO',
         }
