@@ -1,0 +1,6 @@
+[33m339ed1d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fist commit
+[33ma9ce3ae[m first commit
+[33m7cd06fd[m Adiciona funcionalidade para atualizar o tipo de vendedor e exibir informações de tipo no painel. Atualiza a consulta SQL para incluir a coluna TIPO e modifica a lógica de atualização para incluir status e tipo simultaneamente.
+[33m770425f[m Merge branch 'main' of https://github.com/vbgrowth7/g7.distribuidor
+[33ma893181[m Primeiro commit do projeto Distribuidor G7
+[33m705cd11[m Initial commit
